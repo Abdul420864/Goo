@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rod Cutting & Billing</title>
+<style>
+:root{
+  --bg:#0f1115;
+  --card:#1a1d23;
+  --card-2:#22262e;
+  --accent:#3b82f6;
+  --accent-2:#22c55e;
+  --danger:#ef4444;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --border:#2d323c;
+}
+*{box-sizing:border-box}
+body{
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  margin:0;
+  padding:20px;
+  line-height:1.5
+}
+h2{font-size:22px;margin:0 0 16px;font-weight:600}
+h3{font-size:16px;margin:0 0 12px;font-weight:600;color:var(--text)}
+.nav{display:flex;gap:8px;margin-bottom:20px}
+.nav button{
+  flex:1;padding:10px 14px;background:var(--card-2);
+  border:1px solid var(--border);border-radius:8px;color:var(--muted);
+  cursor:pointer;font-weight:500;transition:.2s
+}
+.nav button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.module{
+  background:var(--card);padding:16px;border-radius:12px;
+  margin-bottom:16px;border:1px solid var(--border);display:none
+}
+.module.active{display:block}
+.section{
+  background:var(--card-2);padding:14px;border-radius:10px;
+  margin-bottom:12px;border-left:3px solid var(--accent)
+}
+input,button,textarea,select{
+  width:100%;padding:10px 12px;margin:6px 0;border-radius:8px;
+  border:1px solid var(--border);background:#0c0f14;color:var(--text);
+  font-size:14px;outline:none
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+button{
+  background:var(--accent);border:none;font-weight:600;
+  cursor:pointer;transition:.2s
+}
+button:hover{background:#2563eb}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row input[type="number"],.row select{flex:1}
+.row input[type="checkbox"]{width:auto;margin:0}
+.result{background:var(--card-2);padding:14px;border-radius:10px;margin-top:12px}
+.rod{
+  border-left:3px solid var(--accent-2);padding:10px;margin:8px 0;
+  background:#0c0f14;border-radius:8px;font-size:14px
+}
+.spare{border-left-color:#f59e0b}
+.waste{color:#f87171}
+.label{font-size:13px;color:var(--muted);margin-bottom:4px}
+.small{font-size:12px;color:var(--muted)}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.remove-sec{background:var(--danger);padding:6px 10px;font-size:13px;width:auto}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px}
+th,td{padding:10px;text-align:left;border-bottom:1px solid var(--border)}
+th{background:var(--card-2);font-weight:600}
+.grand{background:#0f2415;border-left:3px solid var(--accent-2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.search-bar{margin-bottom:14px}
+.field-row{display:flex;gap:10px;flex-wrap:wrap}
+.field-row > div{flex:1;min-width:120px}
+.gauge-tag{
+  display:inline-block;background:var(--accent);color:#fff;
+  padding:3px 8px;border-radius:6px;font-size:12px;font-weight:500
+}
+.rod-item{
+  display:flex;align-items:center;gap:10px;background:#0c0f14;
+  padding:10px;border-radius:8px;margin:8px 0;border:1px solid var(--border)
+}
+.rod-item label{margin:0;cursor:pointer}
+</style>
+<link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<h2>Rod Cutting & Billing</h2>
+
+<div class="nav">
+  <button id="nav-manage" class="active" onclick="showModule('manage')">Manage</button>
+  <button id="nav-cutting" onclick="showModule('cutting')">Cutting</button>
+  <button id="nav-bill" onclick="showModule('bill')">Bill</button>
+</div>
+
+<!-- Module 1: Manage Sections -->
+<div id="module-manage" class="module active">
+  <h3>Manage Sections</h3>
+  <div class="search-bar">
+    <input type="text" id="searchSection" placeholder="Search section... type D to show all starting with D" oninput="filterManageSections()">
+  </div>
+  <div id="manageList" class="grid"></div>
+  <button onclick="addManageSection()" style="background:#16a34a">+ Add Section</button>
+</div>
+
+<!-- Module 2: Cutting -->
+<div id="module-cutting" class="module">
+  <h3>Cutting Plan</h3>
+
+  <div class="section">
+    <h3>Available Rod Lengths</h3>
+    <div id="rodList">
+      <div class="rod-item"><input type="checkbox" id="rod-14" checked><label for="rod-14">14 ft</label></div>
+      <div class="rod-item"><input type="checkbox" id="rod-15" checked><label for="rod-15">15 ft</label></div>
+      <div class="rod-item"><input type="checkbox" id="rod-16" checked><label for="rod-16">16 ft</label></div>
+      <div class="rod-item"><input type="checkbox" id="rod-17" checked><label for="rod-17">17 ft</label></div>
+      <div class="rod-item"><input type="checkbox" id="rod-18" checked><label for="rod-18">18 ft</label></div>
+      <div class="rod-item"><input type="checkbox" id="rod-19" checked><label for="rod-19">19 ft</label></div>
+    </div>
+
+    <div class="label">Max waste allowed per rod: 0-8 inches</div>
+    <input type="number" id="maxWaste" value="8" min="0" max="8" step="1">
+  </div>
+
+  <h3>Cutting Jobs</h3>
+  <div id="cuttingSections"></div>
+  <button onclick="addCuttingSection()" style="background:#16a34a">+ Add Cutting Job</button>
+  <button onclick="runCutting()" style="margin-top:10px">Calculate Cutting Plans</button>
+  <div id="cuttingOutput"></div>
+</div>
+
+<!-- Module 3: Bill -->
+<div id="module-bill" class="module">
+  <h3>Bill</h3>
+
+  <div class="label">Discount on Aluminum Sections %</div>
+  <select id="discountSelect">
+    <script>
+      for(let i=0;i<=100;i++){
+        document.write(`<option value="${i}">${i}%</option>`);
+      }
+    </script>
+  </select>
+
+  <button onclick="generateBill()">Generate Bill</button>
+  <div id="billOutput"></div>
+
+  <h3 style="margin-top:16px">Additional Expenses</h3>
+  <div id="expensesList"></div>
+  <button onclick="addExpense()" style="background:#16a34a">+ Add Expense</button>
+  <button onclick="generateBill()">Recalculate Total</button>
+</div>
+
+<script>
+let cuttingCount = 0;
+let expenseCount = 0;
+let cuttingResults = {};
+let allManageSections = [];
+
+// CHANGED 1: Load saved data on startup
+function loadManageValues(){
+  let saved = localStorage.getItem('manageSections');
+  return saved? JSON.parse(saved) : [{name:'', price:'', gauge:''}];
+}
+
+function showModule(name){
+  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('module-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name === 'cutting') updateCuttingDropdowns();
+}
+
+// CHANGED 2: Save to localStorage every time
+function saveManageValues(){
+  let saved = [];
+  document.querySelectorAll('[id^="manage-"]').forEach(div=>{
+    let id = div.id.split('-')[1];
+    saved.push({
+      name: document.getElementById('mname-'+id)?.value || '',
+      price: document.getElementById('mprice-'+id)?.value || '',
+      gauge: document.getElementById('mgauge-'+id)?.value || ''
+    });
+  });
+  localStorage.setItem('manageSections', JSON.stringify(saved));
+  return saved;
+}
+
+function addManageSection(){
+  let saved = saveManageValues();
+  saved.push({name:'', price:'', gauge:''});
+  rebuildManageSections(saved);
+}
+
+// CHANGED 3: Remove button also updates localStorage
+function removeManageSection(el){
+  let saved = saveManageValues();
+  let idx = Array.from(el.parentNode.children).indexOf(el);
+  saved.splice(idx,1);
+  localStorage.setItem('manageSections', JSON.stringify(saved));
+  rebuildManageSections(saved);
+}
+
+function rebuildManageSections(saved){
+  const list = document.getElementById('manageList');
+  list.innerHTML = '';
+  saved.forEach((data, idx)=>{
+    let num = idx + 1;
+    let div = document.createElement('div');
+    div.className='section';
+    div.id = 'manage-'+num;
+    div.innerHTML=`
+      <div class="section-header">
+        <h3>Section ${num}</h3>
+        <button class="remove-sec" onclick="removeManageSection(this.closest('.section'))">Remove</button>
+      </div>
+      <div class="field-row">
+        <div>
+          <div class="label">Section Name</div>
+          <input type="text" id="mname-${num}" placeholder="Section Name" value="${data.name}" oninput="updateManageArray()">
+        </div>
+        <div>
+          <div class="label">Price per ft</div>
+          <input type="number" id="mprice-${num}" placeholder="Price per ft" min="0" step="0.01" value="${data.price}" oninput="updateManageArray()">
+        </div>
+        <div>
+          <div class="label">Gauge</div>
+          <input type="text" id="mgauge-${num}" placeholder="Gauge" value="${data.gauge}" oninput="updateManageArray()">
+        </div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+  updateManageArray();
+}
+
+function updateManageArray(){
+  allManageSections = [];
+  document.querySelectorAll('[id^="manage-"]').forEach(div=>{
+    let id = div.id.split('-')[1];
+    let name = document.getElementById('mname-'+id)?.value.trim();
+    if(name){
+      allManageSections.push({id,name});
+    }
+  });
+  saveManageValues(); // auto-save on input
+}
+
+function filterManageSections(){
+  let search = document.getElementById('searchSection').value.toLowerCase();
+  document.querySelectorAll('[id^="manage-"]').forEach(div=>{
+    let id = div.id.split('-')[1];
+    let name = document.getElementById('mname-'+id)?.value.toLowerCase() || '';
+    div.style.display = name.startsWith(search)? 'block' : 'none';
+  });
+}
+
+function addCuttingSection(){
+  cuttingCount++;
+  let div = document.createElement('div');
+  div.className='section';
+  div.id='cutting-'+cuttingCount;
+  div.innerHTML=`
+    <div class="section-header">
+      <h3>Job ${cuttingCount}</h3>
+      <button class="remove-sec" onclick="removeCuttingSection(${cuttingCount})">Remove</button>
+    </div>
+    <div class="label">Select Section</div>
+    <div class="row">
+      <select id="csection-${cuttingCount}" onchange="updateGaugeTag(${cuttingCount})"></select>
+      <div id="gaugeTag-${cuttingCount}"></div>
+    </div>
+    <div class="label">Enter piece lengths in inches</div>
+    <textarea id="cpieces-${cuttingCount}" rows="3" placeholder="180, 360, 472"></textarea>
+  `;
+  document.getElementById('cuttingSections').appendChild(div);
+  updateCuttingDropdowns();
+}
+
+function removeCuttingSection(id){
+  document.getElementById('cutting-'+id).remove();
+}
+
+function updateCuttingDropdowns(){
+  updateManageArray();
+  document.querySelectorAll('[id^="csection-"]').forEach(sel=>{
+    let currentVal = sel.value;
+    sel.innerHTML = '<option value="">Select Section</option>';
+    allManageSections.forEach(s=>{
+      let gauge = document.getElementById('mgauge-'+s.id)?.value || '-';
+      sel.innerHTML += `<option value="${s.id}">${s.name} [${gauge}]</option>`;
+    });
+    sel.value = currentVal;
+    if(currentVal) updateGaugeTag(sel.id.split('-')[1]);
+  });
+}
+
+function updateGaugeTag(id){
+  let secId = document.getElementById('csection-'+id).value;
+  let tagDiv = document.getElementById('gaugeTag-'+id);
+  if(secId){
+    let gauge = document.getElementById('mgauge-'+secId).value || '-';
+    tagDiv.innerHTML = `<span class="gauge-tag">${gauge}</span>`;
+  } else {
+    tagDiv.innerHTML = '';
+  }
+}
+
+function addExpense(){
+  expenseCount++;
+  let div = document.createElement('div');
+  div.className='row';
+  div.id='expense-'+expenseCount;
+  div.innerHTML=`
+    <input type="text" id="expname-${expenseCount}" placeholder="Expense Name e.g. Glass">
+    <input type="number" id="expamt-${expenseCount}" placeholder="Amount" min="0" step="0.01">
+    <button onclick="removeExpense(${expenseCount})" style="width:auto;background:#ef4444">X</button>
+  `;
+  document.getElementById('expensesList').appendChild(div);
+}
+
+function removeExpense(id){
+  document.getElementById('expense-'+id).remove();
+}
+
+// CHANGED 4: Load saved manage sections on page load instead of adding empty one
+function init(){
+  let saved = loadManageValues();
+  rebuildManageSections(saved);
+  addCuttingSection();
+  addExpense();
+}
+init();
+
+// removed the old: addManageSection(); addCuttingSection(); addExpense();
+
+function runCutting(){
+  let rods = [];
+  [14,15,16,17,18,19].forEach(len=>{
+    if(document.getElementById('rod-'+len).checked){
+      rods.push(len*12);
+    }
+  });
+  rods.sort((a,b)=>b-a);
+
+  let maxWaste = parseFloat(document.getElementById('maxWaste').value);
+  cuttingResults = {};
+  let outputHTML = '';
+
+  document.querySelectorAll('[id^="cutting-"]').forEach(div=>{
+    let id = div.id.split('-')[1];
+    let secId = document.getElementById('csection-'+id).value;
+    let pieces = document.getElementById('cpieces-'+id).value
+.split(/[\n,]+/)
+.map(s=>parseFloat(s.trim()))
+.filter(x=>!isNaN(x) && x>0)
+.sort((a,b)=>b-a);
+
+    if(!secId){alert('Select section for Job '+id);return;}
+    if(pieces.length===0){alert('Enter pieces for Job '+id);return;}
+
+    let secName = document.getElementById('mname-'+secId).value;
+    let gauge = document.getElementById('mgauge-'+secId).value || '-';
+    let result = optimize(pieces, rods, maxWaste);
+    cuttingResults[id] = {secId, secName, gauge, result};
+
+    outputHTML += `<div class="result"><b>${gauge} ${secName} - Cutting Plan</b></div>`;
+    outputHTML += displayCutting(result, gauge, secName);
+  });
+
+  document.getElementById('cuttingOutput').innerHTML = outputHTML;
+}
+
+function displayCutting(res, gauge, secName){
+  let cutPieces = res.rods.flatMap(r=>r.cuts);
+  let totalUsedFt = cutPieces.reduce((a,b)=>a+b,0)/12;
+  let totalBoughtFt = res.rods.reduce((a,b)=>a+b.len/12,0);
+  let totalWasteFt = res.waste/12;
+
+  let html = `<div class="small" style="margin-bottom:8px">
+    <b>Total Used:</b> ${totalUsedFt.toFixed(2)} ft |
+    <b>Rods Bought:</b> ${totalBoughtFt.toFixed(2)} ft |
+    <b>Waste:</b> ${totalWasteFt.toFixed(2)} ft
+  </div>`;
+
+  res.rods.forEach(r=>{
+    let cutsStr = r.cuts.map(c => `${gauge} ${secName} ${c}"`).join(', ');
+    html += `<div class="rod"><b>${r.label} Rod</b> - Used ${(r.len-r.waste).toFixed(1)}",
+      Waste <span class="waste">${r.waste.toFixed(1)}"</span><br>
+      Cuts: ${cutsStr}</div>`;
+  });
+
+  if(res.spare.length>0){
+    let spareStr = res.spare.map(c => `${gauge} ${secName} ${c}"`).join(', ');
+    html += `<div class="rod spare"><b>Offcuts:</b> ${spareStr}<br>
+    <span class="small">Total: ${(res.spare.reduce((a,b)=>a+b,0)/12).toFixed(2)} ft</span>
+    </div>`;
+  }
+  return html;
+}
+
+function generateBill(){
+  let html = '<table><tr><th>Section</th><th>Gauge</th><th>Billed Length</th><th>Price/ft</th><th>Amount</th></tr>';
+  let totalSections = 0;
+
+  for(let id in cuttingResults){
+    let data = cuttingResults[id];
+    let secId = data.secId;
+    let price = parseFloat(document.getElementById('mprice-'+secId).value) || 0;
+    let gauge = data.gauge;
+
+    let boughtFt = data.result.rods.reduce((a,b)=>a+b.len/12,0);
+    let offcutsFt = data.result.spare.reduce((a,b)=>a+b,0)/12;
+    let billedFt = boughtFt + offcutsFt;
+
+    let amount = billedFt * price;
+    totalSections += amount;
+
+    html += `<tr>
+      <td>${data.secName}</td>
+      <td>${gauge}</td>
+      <td>${billedFt.toFixed(2)} ft</td>
+      <td>${price.toFixed(2)}</td>
+      <td>${amount.toFixed(2)}</td>
+    </tr>`;
+  }
+
+  let discountPercent = parseInt(document.getElementById('discountSelect').value);
+  let discountAmount = totalSections * (discountPercent / 100);
+  let discountedSections = totalSections - discountAmount;
+
+  let totalExpenses = 0;
+  document.querySelectorAll('[id^="expense-"]').forEach(div=>{
+    let id = div.id.split('-')[1];
+    let amt = parseFloat(document.getElementById('expamt-'+id).value) || 0;
+    totalExpenses += amt;
+    let name = document.getElementById('expname-'+id).value || 'Expense';
+    html += `<tr><td colspan="4">${name}</td><td>${amt.toFixed(2)}</td></tr>`;
+  });
+
+  let grandTotal = discountedSections + totalExpenses;
+
+  html += `<tr>
+    <td colspan="4"><b>Subtotal - Sections</b></td>
+    <td><b>${totalSections.toFixed(2)}</b></td>
+  </tr>`;
+
+  if(discountPercent > 0){
+    html += `<tr>
+      <td colspan="4"><b>Discount (${discountPercent}%)</b></td>
+      <td><b>- ${discountAmount.toFixed(2)}</b></td>
+    </tr>
+    <tr>
+      <td colspan="4"><b>After Discount</b></td>
+      <td><b>${discountedSections.toFixed(2)}</b></td>
+    </tr>`;
+  }
+
+  html += `<tr class="grand">
+    <td colspan="4"><b>Grand Total</b></td>
+    <td><b>${grandTotal.toFixed(2)}</b></td>
+  </tr></table>`;
+
+  document.getElementById('billOutput').innerHTML = html;
+}
+
+// Unchanged logic
+function optimize(pieces, rods, maxWaste){
+  let memo = new Map();
+  const SPARE_THRESHOLD = 10*12;
+
+  function solve(rem){
+    let key = rem.join(',');
+    if(memo.has(key)) return memo.get(key);
+    if(rem.length===0) return {rods:[], waste:0, spare:[]};
+
+    let totalRem = rem.reduce((a,b)=>a+b,0);
+    if(totalRem <= SPARE_THRESHOLD){
+      return {rods:[], waste:0, spare:rem};
+    }
+
+    let best = null;
+
+    for(let r=0; r<rods.length; r++){
+      let rodLen = rods[r];
+      let n = rem.length;
+
+      for(let mask=1; mask<(1<<n); mask++){
+        let subset=[], subsetSum=0, newRem=[];
+        for(let i=0;i<n;i++){
+          if(mask&(1<<i)){
+            subset.push(rem[i]);
+            subsetSum+=rem[i];
+          }else{
+            newRem.push(rem[i]);
+          }
+        }
+        let waste = rodLen - subsetSum;
+        if(waste<0 || waste>maxWaste) continue;
+
+        let rest = solve(newRem);
+        let totalWaste = waste + rest.waste;
+
+        if(!best || totalWaste < best.waste){
+          best = {
+            rods:[{len:rodLen,label:(rodLen/12).toFixed(1)+'ft',cuts:subset,waste}].concat(rest.rods),
+            waste:totalWaste,
+            spare:rest.spare
+          };
+        }
+      }
+    }
+
+    if(!best){
+      best = {rods:[], waste:0, spare:rem};
+    }
+
+    memo.set(key,best);
+    return best;
+  }
+
+  return solve(pieces);
+}
+</script>
+</body>
+</html>
